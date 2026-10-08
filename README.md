@@ -11,6 +11,28 @@ Meadow LiteLLM router with a bb plugin that owns:
 - Backend health checks with failover away from unhealthy deployments.
 - `bb router ...` commands and the `router_spend` agent tool.
 
+## How it works
+
+```mermaid
+flowchart LR
+    CL["Client call<br/>POST /v1/chat/completions<br/>plugin token + consumer"] --> T{"Model tier<br/>local / cheap / mid / frontier"}
+    T --> MAP["Tier mapping<br/>ordered backend list"]
+    MAP --> HC{"Backend healthy?"}
+    HC -->|"yes"| BE["Upstream backend<br/>gateway or local LM Studio"]
+    HC -->|"no"| NX["Fail over to<br/>next in the tier"]
+    NX --> BE
+    BE --> L[("Spend ledger<br/>SQLite")]
+    CEIL["Daily + monthly ceilings<br/>per tier and service"] -.->|"budget check"| T
+    L --> CMD["bb router spend/status<br/>router_spend agent tool"]
+
+    classDef core fill:#005032,stroke:#0D1016,color:#FAFAF9
+    classDef store fill:#0D1016,stroke:#005032,color:#FAFAF9
+    classDef guard fill:#F5C518,stroke:#0D1016,color:#0D1016
+    class CL,MAP,BE,CMD core
+    class L store
+    class T,HC,NX,CEIL guard
+```
+
 ## Configure
 
 Secret settings are intentionally empty after install:
